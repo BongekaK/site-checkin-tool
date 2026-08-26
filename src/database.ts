@@ -26,5 +26,17 @@ export function initDb(): void {
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_visits_unique ON visits(site_name, technician_name, visit_datetime);
+
+    CREATE TABLE IF NOT EXISTS visit_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      visit_id INTEGER NOT NULL,
+      previous_status TEXT NOT NULL,
+      previous_notes TEXT,
+      changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (visit_id) REFERENCES visits(id)
+    );
   `);
 }
+

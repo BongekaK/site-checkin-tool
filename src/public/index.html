@@ -5,100 +5,189 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Visit Check-In</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #f8fafc; color: #1e293b; max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
-        h1 { color: #0f172a; margin-bottom: 0.5rem; }
-        p { color: #64748b; margin-bottom: 2rem; }
-        .grid { display: grid; gap: 2rem; grid-template-columns: 1fr; }
-        @media (min-width: 768px) { .grid { grid-template-columns: 350px 1fr; } }
-        .card { background: #fff; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0; }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
+        h1 { color: #0f172a; margin-top: 0; margin-bottom: 0.5rem; }
+        p.subtitle { color: #64748b; margin-top: 0; margin-bottom: 2rem; }
+        
+        .grid { display: grid; gap: 2rem; grid-template-columns: 1fr; align-items: start; }
+        @media (min-width: 800px) { .grid { grid-template-columns: 320px 1fr; } }
+        
+        .card { background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-padded { padding: 1.5rem; }
+        
         .form-group { margin-bottom: 1rem; }
-        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; }
-        .form-control { width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 4px; box-sizing: border-box; }
-        .btn { display: inline-block; width: 100%; padding: 0.625rem; font-weight: 600; border-radius: 4px; border: none; cursor: pointer; text-align: center; }
+        label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; color: #334155; }
+        .form-control { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.875rem; }
+        .form-control:focus { outline: none; border-color: #0284c7; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
+        
+        .btn { display: inline-block; padding: 0.625rem 1rem; font-weight: 600; border-radius: 6px; border: none; cursor: pointer; text-align: center; font-size: 0.875rem; transition: background 0.15s ease; }
+        .btn-full { width: 100%; }
         .btn-primary { background: #0284c7; color: #fff; }
-        .btn-secondary { background: #cbd5e1; color: #1e293b; }
-        .filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; background: #f1f5f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; align-items: flex-end; }
-        .filter-group { flex: 1 1 150px; }
-        .filter-buttons { display: flex; gap: 0.5rem; }
-        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; }
-        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        th { background: #f8fafc; color: #475569; }
-        .badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-block; text-transform: uppercase; }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-secondary { background: #e2e8f0; color: #334155; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.8125rem; }
+        
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 1rem; background: #fff; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; align-items: flex-end; }
+        .filter-group { flex: 1 1 140px; }
+        .filter-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
+        .filter-buttons { display: flex; gap: 0.5rem; align-items: flex-end; }
+        .filter-buttons .btn { width: auto; flex: 0 0 auto; height: 38px; }
+        
+        .table-container { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; background: #fff; text-align: left; }
+        th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-size: 0.875rem; }
+        th { background: #f8fafc; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+        tr:last-child td { border-bottom: none; }
+        
+        .badge { padding: 0.25rem 0.625rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; display: inline-block; text-transform: uppercase; }
         .badge-completed { background: #dcfce7; color: #15803d; }
         .badge-issue { background: #fee2e2; color: #b91c1c; }
-        #toast { position: fixed; bottom: 1rem; right: 1rem; padding: 0.75rem 1.5rem; border-radius: 4px; color: #fff; display: none; font-weight: bold; }
+        
+        #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; padding: 0.75rem 1.25rem; border-radius: 6px; color: #fff; display: none; font-weight: 600; font-size: 0.875rem; z-index: 1100; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        #editModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.5); z-index: 1000; justify-content: center; align-items: center; padding: 1rem; }
     </style>
 </head>
 <body>
     <h1>Site Visit Check-In</h1>
-    <p>Field technician site visit logging and management tool</p>
+    <p class="subtitle">Field technician site visit logging and management tool</p>
+    
     <div class="grid">
-        <div class="card">
-            <h2 style="margin-bottom: 1rem; font-size: 1.25rem;">Log a New Visit</h2>
-            <form id="visitForm">
+        <!-- Sidebar / Log Form -->
+        <aside class="sidebar">
+            <div class="card card-padded">
+                <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.125rem;">Log a New Visit</h2>
+                <form id="visitForm">
+                    <div class="form-group">
+                        <label for="site_name">Site Name</label>
+                        <input type="text" id="site_name" class="form-control" placeholder="e.g. Headquarters" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="technician_name">Technician Name</label>
+                        <input type="text" id="technician_name" class="form-control" placeholder="e.g. Jane Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="visit_datetime">Date & Time</label>
+                        <input type="datetime-local" id="visit_datetime" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" class="form-control" required>
+                            <option value="" disabled selected>Select Status</option>
+                            <option value="completed">completed</option>
+                            <option value="issue found">issue found</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Notes (Optional)</label>
+                        <textarea id="notes" class="form-control" rows="3" placeholder="Visit details..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Submit Check-In</button>
+                </form>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <div class="filter-group">
+                    <label for="filter_site">Filter by Site</label>
+                    <input type="text" id="filter_site" class="form-control" placeholder="Search site...">
+                </div>
+                <div class="filter-group">
+                    <label for="filter_start">Start Date</label>
+                    <input type="date" id="filter_start" class="form-control">
+                </div>
+                <div class="filter-group">
+                    <label for="filter_end">End Date</label>
+                    <input type="date" id="filter_end" class="form-control">
+                </div>
+                <div class="filter-buttons">
+                    <button id="btnFilter" type="button" class="btn btn-primary">Filter</button>
+                    <button id="btnReset" type="button" class="btn btn-secondary">Reset</button>
+                </div>
+            </div>
+
+            <!-- All Visits Table -->
+            <div class="card" style="margin-bottom: 1.5rem; overflow: hidden;">
+                <div style="padding: 1rem 1.25rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 1rem;">All Visits</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Site</th>
+                                <th>Technician</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visitsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Weekly Summary Table -->
+            <div class="card" style="overflow: hidden;">
+                <div style="padding: 1rem 1.25rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-weight: 600; font-size: 1rem;">Weekly Summary</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Site Name</th>
+                                <th>Week</th>
+                                <th>Total Visits</th>
+                                <th>Issues Found</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Visit Modal -->
+    <div id="editModal">
+        <div class="card card-padded" style="width: 100%; max-width: 500px; background: #fff; max-height: 90vh; overflow-y: auto; margin: auto;">
+            <h2 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.125rem;">Edit Visit</h2>
+            <form id="editForm">
+                <input type="hidden" id="edit_visit_id">
                 <div class="form-group">
-                    <label for="site_name">Site Name</label>
-                    <input type="text" id="site_name" class="form-control" placeholder="e.g. Headquarters" required>
+                    <label>Site</label>
+                    <input type="text" id="edit_site_name" class="form-control" disabled>
                 </div>
                 <div class="form-group">
-                    <label for="technician_name">Technician Name</label>
-                    <input type="text" id="technician_name" class="form-control" placeholder="e.g. Jane Doe" required>
+                    <label>Technician</label>
+                    <input type="text" id="edit_technician_name" class="form-control" disabled>
                 </div>
                 <div class="form-group">
-                    <label for="visit_datetime">Date & Time</label>
-                    <input type="datetime-local" id="visit_datetime" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label for="status">Status</label>
-                    <select id="status" class="form-control" required>
-                        <option value="" disabled selected>Select Status</option>
+                    <label for="edit_status">Status</label>
+                    <select id="edit_status" class="form-control" required>
                         <option value="completed">completed</option>
                         <option value="issue found">issue found</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="notes">Notes (Optional)</label>
-                    <textarea id="notes" class="form-control" rows="3" placeholder="Visit details..."></textarea>
+                    <label for="edit_notes">Notes</label>
+                    <textarea id="edit_notes" class="form-control" rows="3"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary">Submit Check-In</button>
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                    <button type="button" id="btnCloseModal" class="btn btn-secondary" style="flex: 1;">Cancel</button>
+                </div>
             </form>
-        </div>
-        <div>
-            <div class="filter-bar">
-                <div class="filter-group">
-                    <label for="filter_site" style="font-size: 0.8rem; font-weight: 600;">Filter by Site</label>
-                    <input type="text" id="filter_site" class="form-control" placeholder="Search site...">
-                </div>
-                <div class="filter-group">
-                    <label for="filter_start" style="font-size: 0.8rem; font-weight: 600;">Start Date</label>
-                    <input type="date" id="filter_start" class="form-control">
-                </div>
-                <div class="filter-group">
-                    <label for="filter_end" style="font-size: 0.8rem; font-weight: 600;">End Date</label>
-                    <input type="date" id="filter_end" class="form-control">
-                </div>
-                <div class="filter-buttons">
-                    <button id="btnFilter" class="btn btn-primary" style="padding: 0.5rem 1rem;">Filter</button>
-                    <button id="btnReset" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Reset</button>
-                </div>
-            </div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Site Name</th>
-                            <th>Technician</th>
-                            <th>Visit Time</th>
-                            <th>Status</th>
-                            <th>Notes</th>
-                        </tr>
-                    </thead>
-                    <tbody id="visitsTableBody"></tbody>
-                </table>
+            <div style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                <h3 style="font-size: 0.875rem; font-weight: 600; margin-top: 0; margin-bottom: 0.75rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em;">Revision History</h3>
+                <div id="auditHistoryContainer" style="font-size: 0.875rem;"></div>
             </div>
         </div>
     </div>
+
     <div id="toast"></div>
     <script src="app.js"></script>
 </body>
 </html>
+

@@ -10,6 +10,7 @@ import { db } from '../src/database';
 
 describe('Visits API Endpoints', () => {
   beforeEach(() => {
+    db.prepare('DELETE FROM visit_history').run();
     db.prepare('DELETE FROM visits').run();
   });
 
@@ -135,6 +136,79 @@ describe('Visits API Endpoints', () => {
       const res = await request(app).get('/api/visits').query({ site: 'Nonexistent Site' });
       expect(res.status).toBe(200);
       expect(res.body.length).toBe(0);
+    });
+  });
+
+  describe('Phase 2 Requirements', () => {
+    it('should handle duplicates by returning 200 and existing visit info (preventing duplicate row creation)', async () => {
+      const payload = {
+        site_name: 'Unique Site',
+        technician_name: 'Unique Tech',
+        visit_datetime: '2026-08-30T10:00',
+        status: 'completed',
+        notes: 'Routine maintenance'
+      };
+      // First submission
+      const res1 = await request(app).post('/api/visits').send(payload);
+      expect(res1.status).toBe(201);
+      
+      // Exact duplicate submission
+      const res2 = await request(app).post('/api/visits').send(payload);
+      expect(res2.status).toBe(200);
+      expect(res2.body.duplicate).toBe(true);
+      expect(res2.body.id).toBe(res1.body.id);
+      expect(res2.body.message).toBe('Visit already logged');
+      
+      // Same site, technician, calendar date, and notes, but DIFFERENT time
+      const res3 = await request(app).post('/api/visits').send({
+        ...payload,
+        visit_datetime: '2026-08-30T16:45'
+      });
+      expect(res3.status).toBe(200);
+      expect(res3.body.duplicate).toBe(true);
+      expect(res3.body.id).toBe(res1.body.id);
+
+      const visits = db.prepare('SELECT * FROM visits WHERE site_name = ?').all('Unique Site');
+      expect(visits.length).toBe(1);
+    });
+
+    it('should allow editing a visit and tracking history', async () => {
+      const insert = db.prepare(`
+        INSERT INTO visits (site_name, technician_name, visit_datetime, status, notes)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      const info = insert.run('Edit Site', 'Tech', '2026-08-31T10:00', 'completed', 'Original notes');
+      const visitId = info.lastInsertRowid;
+
+      const res = await request(app)
+        .put(`/api/visits/${visitId}`)
+        .send({ status: 'issue found', notes: 'Corrected notes' });
+      
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('issue found');
+      expect(res.body.notes).toBe('Corrected notes');
+
+      const history = db.prepare('SELECT * FROM visit_history WHERE visit_id = ?').all(visitId) as any[];
+      expect(history.length).toBe(1);
+      expect(history[0].previous_status).toBe('completed');
+      expect(history[0].previous_notes).toBe('Original notes');
+    });
+
+    it('should aggregate weekly summary', async () => {
+       db.prepare(`DELETE FROM visits`).run();
+       const insert = db.prepare(`
+        INSERT INTO visits (site_name, technician_name, visit_datetime, status, notes)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      insert.run('Site A', 'Tech', '2026-08-01T10:00', 'completed', '');
+      insert.run('Site A', 'Tech', '2026-08-02T10:00', 'issue found', '');
+
+      const res = await request(app).get('/api/visits/summary');
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      const summary = res.body.find((s: any) => s.site_name === 'Site A');
+      expect(summary.total_visits).toBe(2);
+      expect(summary.issues_found).toBe(1);
     });
   });
 });
