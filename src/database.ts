@@ -5,15 +5,18 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data.db');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data.db');
 
 // Ensure the directory for the database file exists
-const dbDir = path.dirname(dbPath);
+const dbDir = path.dirname(DB_PATH);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-export const db = new Database(dbPath);
+export const db = new Database(DB_PATH);
+
+// Enable WAL mode for concurrency
+db.pragma('journal_mode = WAL');
 
 export function initDb(): void {
   db.exec(`

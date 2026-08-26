@@ -81,6 +81,20 @@ async function openEditModal(id, site, tech, status, notes) {
   } catch (e) { auditContainer.innerHTML = 'Error loading history.'; }
 }
 
+function formatMessage(data) {
+  if (!data) return 'An unexpected response occurred.';
+  if (Array.isArray(data.details)) {
+    return data.details.join(', ');
+  } else if (typeof data.details === 'string') {
+    return data.details;
+  } else if (data.message) {
+    return data.message;
+  } else if (data.error) {
+    return data.error;
+  }
+  return 'An unexpected response occurred.';
+}
+
 async function handleFormSubmit(e) {
   e.preventDefault();
   const payload = {
@@ -92,40 +106,77 @@ async function handleFormSubmit(e) {
   };
   try {
     const res = await fetch('/api/visits', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.details ? data.details.join(' ') : (data.error || 'Check-in failed'));
+    if (!res.ok) {
+      const msg = formatMessage(data);
+      showToast(msg, 'error');
+      return;
+    }
     if (data.duplicate) {
-      showToast('Visit already logged (duplicate ignored)', 'success');
+      showToast('Visit already logged for this technician and site on this date.', 'info');
     } else {
       showToast('Check-in logged successfully!', 'success');
     }
-    fetchVisits(); fetchSummary();
-    ['site_name', 'status', 'notes'].forEach(id => document.getElementById(id).value = '');
-  } catch (error) { showToast(error.message, 'error'); }
+    fetchVisits();
+    fetchSummary();
+    ['site_name', 'status', 'notes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  } catch (error) {
+    showToast(error.message || 'Check-in failed.', 'error');
+  }
 }
 
 async function handleEditSubmit(e) {
   e.preventDefault();
   const id = document.getElementById('edit_visit_id').value;
-  const payload = { status: document.getElementById('edit_status').value, notes: document.getElementById('edit_notes').value };
+  const payload = {
+    status: document.getElementById('edit_status').value,
+    notes: document.getElementById('edit_notes').value
+  };
   try {
     const res = await fetch(`/api/visits/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Edit failed');
-    showToast('Updated successfully!');
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = formatMessage(data);
+      showToast(msg, 'error');
+      return;
+    }
+    showToast('Updated successfully!', 'success');
     document.getElementById('editModal').style.display = 'none';
-    fetchVisits(); fetchSummary();
-  } catch (error) { showToast(error.message, 'error'); }
+    fetchVisits();
+    fetchSummary();
+  } catch (error) {
+    showToast(error.message || 'Edit failed.', 'error');
+  }
 }
 
 function showToast(msg, type = 'success') {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.style.backgroundColor = type === 'success' ? '#10b981' : '#ef4444';
-  t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3000);
+  if (!t) return;
+  t.textContent = msg;
+  if (type === 'success') {
+    t.style.backgroundColor = '#10b981';
+  } else if (type === 'error') {
+    t.style.backgroundColor = '#ef4444';
+  } else if (type === 'info') {
+    t.style.backgroundColor = '#f59e0b';
+  } else {
+    t.style.backgroundColor = '#0284c7';
+  }
+  t.style.display = 'block';
+  if (window.toastTimeout) clearTimeout(window.toastTimeout);
+  window.toastTimeout = setTimeout(() => {
+    t.style.display = 'none';
+  }, 3500);
 }
 
